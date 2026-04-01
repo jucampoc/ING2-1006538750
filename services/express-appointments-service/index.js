@@ -53,4 +53,31 @@ app.post('/api/appointments', requireToken, async (req, res) => {
     }
 });
 
+
+app.put('/api/appointments/:id', requireToken, async (req, res) => {
+    try {
+        const id = req.params.id; // Capturamos el ID de la URL
+        const dataToUpdate = req.body; // Capturamos los nuevos datos
+        
+        await db.collection('appointments').doc(id).update(dataToUpdate);
+        
+        res.status(200).json({ message: "Cita Actualizada exitosamente" });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+
+app.delete('/api/appointments/:id', requireToken, async (req, res) => {
+    try {
+        const id = req.params.id; // Capturamos el ID de la URL
+        
+        await db.collection('appointments').doc(id).delete();
+        
+        res.status(200).json({ message: "Cita Eliminada exitosamente" });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 app.listen(3000, () => console.log('Appointments Service protegido corriendo en puerto 3000'));
