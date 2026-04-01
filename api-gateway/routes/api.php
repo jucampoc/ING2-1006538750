@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PatientProxyController;
+use App\Http\Controllers\AppointmentProxyController;
 
 // Rutas públicas
 Route::post('/login', [AuthController::class, 'login']);
@@ -25,4 +26,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/patients', [PatientProxyController::class, 'index']);
     Route::post('/patients', [PatientProxyController::class, 'store']);
+
+    Route::get('/appointments', [AppointmentProxyController::class, 'index']);
+    Route::post('/appointments', [AppointmentProxyController::class, 'store']);
+
 });
