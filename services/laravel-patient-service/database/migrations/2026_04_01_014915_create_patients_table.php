@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('last_name');
-            $table->string('identityd_document')->unique();
+            $table->string('identity_document')->unique();
             $table->date('birthday');
             $table->string('phone')->nullable();
             $table->string('blood_type')->nullable();
