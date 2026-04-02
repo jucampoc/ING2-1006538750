@@ -1,0 +1,32 @@
+[
+  {
+    "model": "notifications.notification",
+    "pk": 1,
+    "fields": {
+      "patient_id": 1,
+      "message": "Su cita con el Dr. House ha sido confirmada para el 15 de Abril.",
+      "type": "SMS",
+      "created_at": "2026-04-02T10:00:00Z"
+    }
+  },
+  {
+    "model": "notifications.notification",
+    "pk": 2,
+    "fields": {
+      "patient_id": 2,
+      "message": "Recordatorio: Ayuno de 8 horas para su examen de sangre mañana.",
+      "type": "EMAIL",
+      "created_at": "2026-04-02T11:00:00Z"
+    }
+  },
+  {
+    "model": "notifications.notification",
+    "pk": 3,
+    "fields": {
+      "patient_id": 3,
+      "message": "Su resultado de laboratorio ya está disponible en el portal.",
+      "type": "APP",
+      "created_at": "2026-04-02T12:00:00Z"
+    }
+  }
+]
