@@ -33,4 +33,32 @@ class MedicalRecordProxyController extends Controller
 
         return response()->json($response->json(), $response->status());
     }
+
+    public function show($id)
+    {
+        $response = Http::withHeaders([
+            'Authorization' => $this->secretToken
+        ])->get($this->url . '/' . $id);
+
+        return response($response->body(), $response->status())->header('Content-Type', 'application/json');
+    }
+
+    public function update(Request $request, $id)
+    {
+        $response = Http::withHeaders([
+            'Authorization' => $this->secretToken
+        ])->put($this->url . '/' . $id, $request->all());
+
+        return response($response->body(), $response->status())->header('Content-Type', 'application/json');
+    }
+
+
+    public function destroy($id)
+    {
+        $response = Http::withHeaders([
+            'Authorization' => $this->secretToken
+        ])->delete($this->url . '/' . $id);
+
+        return response($response->body(), $response->status())->header('Content-Type', 'application/json');
+    }
 }
