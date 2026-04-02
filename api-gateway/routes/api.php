@@ -33,6 +33,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/appointments', [AppointmentProxyController::class, 'index']);
     Route::post('/appointments', [AppointmentProxyController::class, 'store']);
+    Route::get('/appointments/{id}', [AppointmentProxyController::class, 'show']);
     Route::put('/appointments/{id}', [AppointmentProxyController::class, 'update']);
     Route::delete('/appointments/{id}', [AppointmentProxyController::class, 'destroy']);
 

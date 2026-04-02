@@ -8,7 +8,6 @@ use Illuminate\Support\Facades\Http;
 class AppointmentProxyController extends Controller
 {
     private $url = 'http://localhost:3000/api/appointments';
-
     private $secretToken = 'Token miclave123';
 
     public function index()
@@ -29,6 +28,14 @@ class AppointmentProxyController extends Controller
         return response()->json($response->json(), $response->status());
     }
 
+    public function show($id)
+    {
+        $response = Http::withHeaders([
+            'Authorization' => $this->secretToken
+        ])->get($this->url . '/' . $id);
+
+        return response()->json($response->json(), $response->status());
+    }
 
     public function update(Request $request, $id)
     {
@@ -47,5 +54,4 @@ class AppointmentProxyController extends Controller
 
         return response()->json($response->json(), $response->status());
     }
-
 }
