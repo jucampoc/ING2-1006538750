@@ -32,4 +32,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/appointments/{id}', [AppointmentProxyController::class, 'update']);
     Route::delete('/appointments/{id}', [AppointmentProxyController::class, 'destroy']);
 
+
+    Route::get('/medical-records', [\App\Http\Controllers\MedicalRecordProxyController::class, 'index']);
+    Route::post('/medical-records', [\App\Http\Controllers\MedicalRecordProxyController::class, 'store']);
+
 });
