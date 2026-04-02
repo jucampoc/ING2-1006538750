@@ -4,7 +4,8 @@ from pymongo import MongoClient
 import os
 from dotenv import load_dotenv
 from functools import wraps
-from bson import json_util 
+from bson import json_util
+from bson.objectid import ObjectId 
 import json
 
 load_dotenv()
@@ -14,9 +15,9 @@ CORS(app)
 
 MONGO_URI = os.getenv("MONGO_URI")
 
-# Validar que el URI realmente se haya cargado
+
 if not MONGO_URI:
-    raise ValueError("¡ALERTA ROJA! Python no pudo leer MONGO_URI del archivo .env. Revisa el nombre de la variable o si el archivo está guardado.")
+    raise ValueError("ERROR.")
 
 client = MongoClient(MONGO_URI)
 db = client.hospital_db
@@ -56,6 +57,43 @@ def create_record():
         }), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+
+@app.route('/api/medical-records/<record_id>', methods=['GET'])
+@require_token
+def get_record(record_id):
+    try:
+        record = records_collection.find_one({"_id": ObjectId(record_id)})
+        if record:
+            return json.loads(json_util.dumps(record)), 200
+        return jsonify({"error": "Historial no encontrado"}), 404
+    except Exception as e:
+        return jsonify({"error": "ID inválido o error en el servidor"}), 400
+    
+
+@app.route('/api/medical-records/<record_id>', methods=['PUT'])
+@require_token
+def update_record(record_id):
+    try:
+        data = request.json
+        result = records_collection.update_one({"_id": ObjectId(record_id)}, {"$set": data})
+        if result.matched_count:
+            return jsonify({"message": "Historial actualizado exitosamente"}), 200
+        return jsonify({"error": "Historial no encontrado"}), 404
+    except Exception as e:
+        return jsonify({"error": "ID inválido o error en el servidor"}), 400
+
+@app.route('/api/medical-records/<record_id>', methods=['DELETE'])
+@require_token
+def delete_record(record_id):
+    try:
+        result = records_collection.delete_one({"_id": ObjectId(record_id)})
+        if result.deleted_count:
+            return jsonify({"message": "Historial eliminado exitosamente"}), 200
+        return jsonify({"error": "Historial no encontrado"}), 404
+    except Exception as e:
+        return jsonify({"error": "ID inválido o error en el servidor"}), 400
+
 
 if __name__ == '__main__':
     puerto = int(os.getenv("PORT", 5000))
