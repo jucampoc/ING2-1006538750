@@ -54,13 +54,34 @@ app.post('/api/appointments', requireToken, async (req, res) => {
 });
 
 
+app.get('/api/appointments/:id', requireToken, async (req, res) => {
+    try {
+        const id = req.params.id;
+        const doc = await db.collection('appointments').doc(id).get();
+        
+        if (!doc.exists) {
+            return res.status(404).json({ error: "Cita no encontrada" });
+        }
+        
+        res.json({ id: doc.id, ...doc.data() });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+
 app.put('/api/appointments/:id', requireToken, async (req, res) => {
     try {
-        const id = req.params.id; // Capturamos el ID de la URL
-        const dataToUpdate = req.body; // Capturamos los nuevos datos
-        
-        await db.collection('appointments').doc(id).update(dataToUpdate);
-        
+        const id = req.params.id;
+        const dataToUpdate = req.body;
+        const docRef = db.collection('appointments').doc(id);
+        const doc = await docRef.get();
+
+        if (!doc.exists) {
+            return res.status(404).json({ error: "No se puede actualizar: Cita no encontrada" });
+        }
+
+        await docRef.update(dataToUpdate);
         res.status(200).json({ message: "Cita Actualizada exitosamente" });
     } catch (e) {
         res.status(500).json({ error: e.message });
@@ -70,10 +91,15 @@ app.put('/api/appointments/:id', requireToken, async (req, res) => {
 
 app.delete('/api/appointments/:id', requireToken, async (req, res) => {
     try {
-        const id = req.params.id; // Capturamos el ID de la URL
-        
-        await db.collection('appointments').doc(id).delete();
-        
+        const id = req.params.id;
+        const docRef = db.collection('appointments').doc(id);
+        const doc = await docRef.get();
+
+        if (!doc.exists) {
+            return res.status(404).json({ error: "No se puede eliminar: Cita no encontrada" });
+        }
+
+        await docRef.delete();
         res.status(200).json({ message: "Cita Eliminada exitosamente" });
     } catch (e) {
         res.status(500).json({ error: e.message });
