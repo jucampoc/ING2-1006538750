@@ -6,6 +6,8 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PatientProxyController;
 use App\Http\Controllers\AppointmentProxyController;
 use App\Http\Controllers\MedicalRecordProxyController;
+use App\Http\Controllers\NotificationProxyController;
+use App\Http\Controllers\PharmacyProxyController;
 
 // Rutas públicas
 Route::post('/login', [AuthController::class, 'login']);
@@ -25,24 +27,18 @@ Route::middleware('auth:sanctum')->group(function () {
         return $request->user();
     });
 
-    Route::get('/patients', [PatientProxyController::class, 'index']);
-    Route::post('/patients', [PatientProxyController::class, 'store']);
-    Route::get('/patients/{id}', [PatientProxyController::class, 'show']);
-    Route::put('/patients/{id}', [PatientProxyController::class, 'update']);
-    Route::delete('/patients/{id}', [PatientProxyController::class, 'destroy']);
-
-    Route::get('/appointments', [AppointmentProxyController::class, 'index']);
-    Route::post('/appointments', [AppointmentProxyController::class, 'store']);
-    Route::get('/appointments/{id}', [AppointmentProxyController::class, 'show']);
-    Route::put('/appointments/{id}', [AppointmentProxyController::class, 'update']);
-    Route::delete('/appointments/{id}', [AppointmentProxyController::class, 'destroy']);
+    Route::apiResource('patients', PatientProxyController::class);
 
 
-    Route::get('/medical-records', [MedicalRecordProxyController::class, 'index']);
-    Route::post('/medical-records', [MedicalRecordProxyController::class, 'store']);
-    Route::get('/medical-records/{id}', [MedicalRecordProxyController::class, 'show']);
-    Route::put('/medical-records/{id}', [MedicalRecordProxyController::class, 'update']);
-    Route::delete('/medical-records/{id}', [MedicalRecordProxyController::class, 'destroy']);
+    Route::apiResource('appointments', AppointmentProxyController::class);
 
+
+    Route::apiResource('medical-records', MedicalRecordProxyController::class);
+
+
+    Route::apiResource('notifications', NotificationProxyController::class);
+
+
+    Route::apiResource('pharmacy', PharmacyProxyController::class);
 
 });
