@@ -377,7 +377,7 @@ POST | `/api/register` | Crea un nuevo usuario en el sistema. | `name`, `email`,
 POST | `/api/logout` | Revoca el token de acceso actual del usuario. | Bearer Token
 
 ### Ejemplo de Petición (Thunder Client / Postman)
-Si deseas crear una cita médica, debes configurar tu cliente REST de la siguiente manera:
+Si desea crear una cita médica, debe configurar tu cliente REST de la siguiente manera:
 
 **URL**: POST `http://localhost:8000/api/appointments`
 
@@ -398,3 +398,189 @@ Authorization: Bearer 1|abcdef1234567890...
   "status": "pending"
 }
 ```
+
+
+# Flujo de Petición (Ejemplo: Crear una Cita Médica)
+El siguiente esquema demuestra el ciclo de vida de una petición dentro del sistema, evidenciando el funcionamiento de las dos capas de seguridad (Sanctum y Shared Secret).
+
+```bash
+1. [CLIENTE]  POST /api/appointments  + Authorization: Bearer <Token_Sanctum>
+       │
+       ▼
+2. [GATEWAY]  Middleware auth:sanctum valida el token del cliente
+              ✓ Token válido → continuar
+              ✗ Token inválido/ausente → 401 Unauthenticated
+       │
+       ▼
+3. [GATEWAY]  AppointmentProxyController (o equivalente) recibe la solicitud
+              • Extrae los datos del body (patient_id, doctor_name, etc.)
+              • Inyecta header interno: Authorization: Token miclave123
+       │
+       ▼
+4. [GATEWAY → EXPRESS]  HTTP POST http://localhost:3000/api/appointments
+                        Headers: Authorization: Token miclave123
+                        Body: { patient_id: 3, doctor_name: "Dr. Shaun Murphy"... }
+       │
+       ▼
+5. [EXPRESS]  Middleware requireToken (Capa 2) valida el Token Interno
+              ✓ Clave válida → continuar
+              ✗ Clave inválida/ausente → 403 Forbidden (Acceso denegado. Solo Gateway...)
+       │
+       ▼
+6. [EXPRESS]  Ruta POST /api/appointments
+              • Asigna el serverTimestamp() actual
+              • Guarda el nuevo documento en Google Cloud Firestore
+              • Retorna el ID del documento generado
+       │
+       ▼
+7. [GATEWAY]  Recibe respuesta del microservicio Express (Status 201)
+              • Retorna la respuesta transparente al cliente original
+       │
+       ▼
+8. [CLIENTE]  Recibe confirmación HTTP 201 Created: { "id": "doc_id_firebase", "message": "Cita Guardada" }
+```
+# Guía de Pruebas (Thunder Client / Postman)
+A continuación se presenta un flujo de trabajo completo para probar la integración de todo el sistema a través del API Gateway.
+
+**Paso 1 — Registrar un Usuario (Médico/Admin)**
+- Método: `POST`
+- URL: `http://localhost:8000/api/register`
+- Headers: `Content-Type: application/json`
+- Body:
+```json
+{
+  "name": "Julian",
+  "email": "julian@gmail.com",
+  "password": "password123",
+  "password_confirmation": "password123"
+}
+```
+**Paso 2 — Login (Obtener Token Sanctum)**
+- Método: `POST`
+- URL: `http://localhost:8000/api/login`
+- Headers: `Content-Type: application/json`
+- Body:
+```json
+{
+  "email": "julian@gmail.com",
+  "password": "password123"
+}
+```
+ *Acción requerida:* Copiar el valor del campo token de la respuesta JSON para usarlo en los siguientes pasos.
+
+**Paso 3 — Registrar un Paciente**
+- Método: `POST`
+- URL: `http://localhost:8000/api/patients`
+- Headers: 
+    - `Authorization: Bearer <token_copiado>`
+    - `Content-Type: application/json`
+
+
+- Body:
+```json
+{
+    "name": "Ana",
+    "last_name": "López",
+    "identity_document": "1020304050",
+    "birthday": "1995-08-15",
+    "phone": "3009876543",
+    "blood_type": "O+"
+}
+```
+*Nota:* Anota el id del paciente devuelto en la respuesta (ej. 4).
+
+**Paso 4 — Verificar Datos del Paciente**
+Método: GET
+
+- URL: `http://localhost:8000/api/patients/4` (Reemplaza '4' por el ID obtenido en el Paso 3)
+- Headers:
+    - Authorization: `Bearer <token_copiado>`
+
+**Paso 5 — Agendar una Cita Médica (Firestore)**
+- Método: `POST`
+- URL: `http://localhost:8000/api/appointments`
+- Headers:
+    - `Authorization: Bearer <token_copiado>`
+    - `Content-Type: application/json`
+- Body:
+```json
+{
+    "patient_id": 4, 
+    "doctor_name": "Dr. Gregory House",
+    "appointment_date": "2026-04-20",
+    "reason": "Migraña crónica",
+    "status": "pending"
+}
+```
+*Nota:* (Recuerda reemplaza '4' por el ID obtenido en el Paso 3)
+
+**Paso 6 — Crear Historial Clínico (MongoDB)**
+- Método: `POST`
+- URL: `http://localhost:8000/api/medical-records`
+- Headers:
+    - `Authorization: Bearer <token_copiado>`
+    - `Content-Type: application/json`
+- Body:
+```json
+{
+    "patient_id": 4,
+    "diagnosis": "Migraña crónica severa",
+    "treatment": "Ibuprofeno 400mg cada 8 horas y reposo en habitación oscura",
+    "doctor": "Dr. Gregory House"
+}
+```
+*Nota:* (Recuerda reemplaza '4' por el ID obtenido en el Paso 3)
+
+**Paso 7 — Cerrar Sesión**
+- Método: `POST`
+- URL: `http://localhost:8000/api/logout`
+- Headers:
+    - `Authorization: Bearer <token_copiado>`
+
+Al ejecutar este paso, el token actual será revocado en la base de datos del Gateway, y cualquier petición posterior a los microservicios será denegada con un error `401 Unauthenticated`.
+# Bases de Datos
+
+El sistema utiliza un enfoque de persistencia políglota, seleccionando el motor de base de datos más adecuado para las necesidades específicas de cada microservicio.
+
+| Componente | Motor | Uso |
+| :--- | :--- | :--- |
+| **API Gateway** | MySQL (Local) | Usuarios administradores y tokens de acceso (Sanctum) |
+| **Patients Service** | MySQL (Local) | Datos demográficos estructurados de pacientes |
+| **Notifications Service** | PostgreSQL (Local) | Registro transaccional de notificaciones y alertas |
+| **Appointments Service** | Firebase Cloud Firestore | Gestión de citas médicas (documentos en tiempo real) |
+| **Pharmacy Service** | MongoDB Atlas | Inventario y catálogo de medicamentos |
+| **Med. Records Service** | MongoDB Atlas | Historiales clínicos (documentos flexibles sin esquema estricto) |
+
+---
+
+## Variables de Entorno Resumen
+
+Las configuraciones sensibles se manejan a través de archivos `.env` en cada servicio. A continuación, se describen las variables más críticas:
+
+| Variable | Servicio(s) | Descripción |
+| :--- | :--- | :--- |
+| `DB_CONNECTION` | Gateway, Patients | Define el motor relacional (mysql) |
+| `DB_DATABASE` | Gateway, Patients, Notif. | Nombre de la base de datos local |
+| `TOKEN_SECRETO` / `TOKEN_INTERNO` | Microservicios | Clave compartida para validar peticiones del Gateway (`miclave123`) |
+| `MONGO_URI` | Pharmacy, Med. Records | URI de conexión a la base de datos en MongoDB Atlas |
+| `PORT` | Express, Flask | Define el puerto local de ejecución del microservicio |
+| `serviceAccountKey.json` | Appointments | Archivo JSON (credenciales) para conexión con Google Firebase |
+
+---
+
+## Tecnologías Utilizadas
+
+El monorepo integra múltiples lenguajes y frameworks para demostrar interoperabilidad.
+
+| Componente | Tecnología | Lenguaje | Puerto |
+| :--- | :--- | :--- | :--- |
+| **API Gateway** | Laravel 11 | PHP 8.2+ | `8000` |
+| **Patients Service** | Laravel 11 | PHP 8.2+ | `8001` |
+| **Notifications Service** | Django 5 | Python 3 | `8002` |
+| **Appointments Service** | Express.js | Node.js | `3000` |
+| **Pharmacy Service** | Express.js | Node.js | `3001` |
+| **Medical Records Service** | Flask | Python 3 | `5000` |
+| **Bases de Datos Relacionales** | MySQL, PostgreSQL | SQL | `3306`, `5432` |
+| **Bases de Datos NoSQL** | MongoDB, Firestore | BSON / JSON | Cloud |
+| **Autenticación Externa** | Laravel Sanctum | - | - |
+| **Autenticación Interna** | Shared Token Middleware | - | - |
