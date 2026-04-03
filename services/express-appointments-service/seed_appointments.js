@@ -38,15 +38,15 @@ const appointments = [
 ];
 
 async function seed() {
-  console.log("⏳ Cargando citas en Cloud Firestore...");
+  console.log("Cargando citas en Cloud Firestore...");
   const collectionRef = db.collection('appointments');
 
   for (const appt of appointments) {
     await collectionRef.doc(appt.id).set(appt);
-    console.log(`✅ Cita ${appt.id} agregada`);
+    console.log(`Cita ${appt.id} agregada`);
   }
   
-  console.log("🚀 ¡Proceso terminado!");
+  console.log("¡Proceso terminado!");
   process.exit();
 }
 
