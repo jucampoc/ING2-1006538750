@@ -14,48 +14,55 @@ Este sistema implementa una arquitectura de microservicios para la gestión hosp
 ## Arquitectura del Sistema
 
 ```text
-       +-----------------------------------------------------------+
-       |                      CLIENTES (REST)                      |
-       |                  (Thunder Client / Web)                   |
-       +----------------------------+------------------------------+
-                                    |
-                                    | HTTP/HTTPS (Port 8000)
-                                    v
-       +----------------------------+------------------------------+
-       |                     API GATEWAY                           |
-       |             Laravel 11 | Port: 8000                       |
-       |        +-----------------------------------------+        |
-       |        | Autenticación JWT | Enrutamiento (Proxy)|        |
-       |        +-----------------------------------------+        |
-       +------+-----------+-----------+------------+-----------+---+
-              |           |           |            |           |
-      ________v___________v___________v____________v___________v________
+        +-----------------------------------------------------------+
+        |                     CLIENTES (REST)                       |
+        |                (Thunder Client / Web)                     |
+        +----------------------------+------------------------------+
+                                     |
+                                     | HTTP/HTTPS (Port 8000)
+                                     v
+        +----------------------------+------------------------------+
+        |                     API GATEWAY                           |
+        |              Laravel 11 | Port: 8000                      |
+        |        +-----------------------------------------+        |
+        |        | Autenticación Sanctum | Proxy Routing   |        |
+        |        +-----------------------------------------+        |
+        +------+-----------+-----------+------------+-----------+---+
+               |           |           |            |           |
+      _________v___________v___________v____________v___________v________
      |                                                                  |
-     |                     RED INTERNA / MICROSERVICIOS                 |
+     |                    RED INTERNA / MICROSERVICIOS                  |
      |__________________________________________________________________|
-              |           |           |               |                 |
-     +--------v---+  +----v-------+  +v-----------+  +v----------+  +---v--------+
-     |  PATIENTS  |  |NOTIFICATIONS| |APPOINTMENTS|  | PHARMACY   | |MED. RECORDS|
-     | Laravel 11 |  |   Django    | | Express.js |  | Express.js | |   Flask    |
-     | Port: 8001 |  | Port: 8002  | | Port: 3000 |  | Port: 3001 | | Port: 5000 |
-     +--------+---+  +----+-------+  +-----+------+  +-----+------+ +------------+
-              |           |                |               |               |
-              v           v                v               v               v
-     +--------+---+  +----+-------+  +-----+------+  +-----+------+  +-----+------+
-     |   MySQL    |  | PostgreSQL |  | Firestore  |  |  MongoDB   |  |  MongoDB   |
-     |  (Local)   |  |  (Local)   |  |  (Cloud)   |  |  (Atlas)   |  |  (Atlas)   |
-     +------------+  +------------+  +------------+  +------------+  +------------+
+               |           |           |               |                |
+      +--------v---+  +----v-------+  +v-----------+  +v----------+  +---v--------+
+      |  PATIENTS  |  |NOTIFICATIONS| |APPOINTMENTS|  | PHARMACY   | |MED. RECORDS|
+      | Laravel 11 |  |   Django    | | Express.js |  | Express.js | |   Flask    |
+      | Port: 8001 |  | Port: 8002  | | Port: 3000 |  | Port: 3001 | | Port: 5000 |
+      +--------+---+  +----+-------+  +-----+------+  +-----+------+ +------------+
+               |           |                |               |               |
+               v           v                v               v               v
+      +--------+---+  +----+-------+  +-----+------+  +-----+------+  +-----+------+
+      |   MySQL    |  | PostgreSQL |  | Firestore  |  |  MongoDB   |  |  MongoDB   |
+      |  (Local)   |  |  (Local)   |  |  (Cloud)   |  |  (Atlas)   |  |  (Atlas)   |
+      +------------+  +------------+  +------------+  +------------+  +------------+
 ```
 ## Seguridad
 El sistema implementa un modelo de seguridad por capas para garantizar la integridad de los datos hospitalarios
-### Capa 1: Cliente → Gateway (JWT)
+### Capa 1: Cliente → Gateway (Sanctum)
+La autenticación se gestiona mediante **Laravel Sanctum**, proporcionando tokens de acceso personales (SPA/Mobile friendly).
+
 | Elemento | Detalle |
 | :--- | :--- |
-| **Algoritmo** | `HS256 (HMAC SHA-256)` |
+| **Mecanismo** | Bearer Token (PlainTextToken) |
 | **Header** | `Authorization: Bearer <token>` |
-| **Expiración** | Configurable |
-| **Invalidación** | Blacklist en base de datos MySQL |
-| **Librería** | `tymon/jwt-auth` para Laravel 11 |
+| **Invalidación** | Revocación en tabla `personal_access_tokens` |
+| **Database** | MySQL (api-gateway) |
+
+### Capa 2: Gateway → Microservicios (Shared Secret)
+Para asegurar que los microservicios solo respondan al Gateway, se utiliza un token de autorización compartido.
+
+* **Header:** `Authorization: Token miclave123`
+* **Implementación:** El Gateway inyecta este header en cada petición hacia los servicios internos para superar el middleware auth.secret (Laravel) o el InternalTokenMiddleware (Django).
 
 **Rutas sin autenticación:**
 * `POST /api/login`
@@ -65,16 +72,6 @@ El sistema implementa un modelo de seguridad por capas para garantizar la integr
 **Rutas con autenticación JWT obligatoria:**
 * Todas las rutas de servicios internos (`/api/patients`, `/api/appointments`, `/api/notifications`, `/api/pharmacy`, `/api/medical-records`)
 
-### Capa 2: Gateway → Microservicios (X-Internal-Key)
-Los microservicios internos no son accesibles directamente desde el exterior. Solo el Gateway conoce su ubicación interna y clave de acceso.
-
-| Elemento | Detalle |
-| :--- | :--- |
-| **Mecanismo** | Header HTTP personalizado |
-| **Header** | `X-Internal-Key: <clave_secreta_compartida>` |
-| **Configuración** | Variable de entorno en Gateway y en cada microservicio |
-| **Rechazo** | El microservicio devuelve `403 Forbidden` si la clave falta o es errónea |
-
  **Nota:** Los microservicios nunca son accesibles directamente desde el exterior. Solo el Gateway (Port 8000) conoce su URL interna y clave de acceso.
 
  ### Capa 3: Gestión de Secretos y Persistencia (En desarrollo)
@@ -82,7 +79,7 @@ En cumplimiento con las buenas prácticas y para mitigar riesgos de filtración 
 
 * **Secret Management:** Las URIs de conexión a **MongoDB Atlas** y las llaves de **Cloud Firestore** se gestionan exclusivamente mediante variables de entorno (`.env`).
 * **Git Integrity:** El archivo `.gitignore` está configurado para excluir archivos sensibles, evitando la exposición de secretos en el repositorio público.
-* **Aislamiento de Datos:** Los motores de base de datos relacionales (**MySQL** y **PostgreSQL**) están configurados para aceptar conexiones únicamente desde el host local de los microservicios correspondientes.
+* **Aislamiento de Datos:** Las bases de datos locales están configuradas para aceptar conexiones exclusivamente desde el microservicio propietario.
 ## Estructura del Proyecto
 
 El proyecto sigue una arquitectura de monorepositorio con una clara separación entre el punto de entrada y los servicios especializados.
@@ -131,13 +128,16 @@ Asegúrese de tener instalados los siguientes entornos:
 
 ---
 
-### Paso 1: Clonar el Proyecto
+### 1. API Gateway - Laravel 11
 ```bash
 # clonar el repositorio
-git clone [https://github.com/jucampoc/ING2-1006538750.git)
+git clone https://github.com/jucampoc/ING2-1006538750.git
 
 # nos dirigimos al proyecto
-cd ING2-1006538750
+cd ING2-1006538750/
+
+# nos dirigimos al api-gateway
+cd api-gateway/
 
 # Instalar dependencias PHP
 composer install
@@ -146,31 +146,8 @@ composer install
 cp .env.example .env
 php artisan key:generate
 ```
-### Configuración del .env
-
+### .env
 ```bash
-APP_NAME=Laravel
-APP_ENV=local
-APP_KEY=
-APP_DEBUG=true
-APP_URL=http://localhost
-
-APP_LOCALE=en
-APP_FALLBACK_LOCALE=en
-APP_FAKER_LOCALE=en_US
-
-APP_MAINTENANCE_DRIVER=file
-# APP_MAINTENANCE_STORE=database
-
-# PHP_CLI_SERVER_WORKERS=4
-
-BCRYPT_ROUNDS=12
-
-LOG_CHANNEL=stack
-LOG_STACK=single
-LOG_DEPRECATIONS_CHANNEL=null
-LOG_LEVEL=debug
-
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
@@ -178,43 +155,89 @@ DB_DATABASE=api-gateway
 DB_USERNAME=root
 DB_PASSWORD=root
 
-SESSION_DRIVER=database
-SESSION_LIFETIME=120
-SESSION_ENCRYPT=false
-SESSION_PATH=/
-SESSION_DOMAIN=null
-
-BROADCAST_CONNECTION=log
-FILESYSTEM_DISK=local
-QUEUE_CONNECTION=database
-
-CACHE_STORE=database
-# CACHE_PREFIX=
-
-MEMCACHED_HOST=127.0.0.1
-
-REDIS_CLIENT=phpredis
-REDIS_HOST=127.0.0.1
-REDIS_PASSWORD=null
-REDIS_PORT=6379
-
-MAIL_MAILER=log
-MAIL_SCHEME=null
-MAIL_HOST=127.0.0.1
-MAIL_PORT=2525
-MAIL_USERNAME=null
-MAIL_PASSWORD=null
-MAIL_FROM_ADDRESS="hello@example.com"
-MAIL_FROM_NAME="${APP_NAME}"
-
-AWS_ACCESS_KEY_ID=
-AWS_SECRET_ACCESS_KEY=
-AWS_DEFAULT_REGION=us-east-1
-AWS_BUCKET=
-AWS_USE_PATH_STYLE_ENDPOINT=false
-
-VITE_APP_NAME="${APP_NAME}"
-
-MEDICAL_RECORDS_SERVICE_URL=http://127.0.0.1:5000/api/medical-records
-MEDICAL_RECORDS_SECRET_TOKEN="Token miclave123"
+# URLs de Microservicios
+MEDICAL_RECORDS_SERVICE_URL=[http://127.0.0.1:5000/api/medical-records](http://127.0.0.1:5000/api/medical-records)
+# Los demás servicios usan URLs configuradas internamente en los ProxyControllers
 ```
+
+```bash
+# Crear tablas y cargar usuarios de prueba (julian@gmail.com / admin123)
+php artisan migrate --seed
+
+# iniciar servidor 
+php artisan serv
+```
+
+
+## 2. Patient Service (Laravel 11) - Puerto 8001
+
+Cada microservicio es autónomo. Asegúrese de que este servicio apunte a su propia base de datos:
+
+```Bash
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=hospital-patients  # Base de datos específica del servicio
+DB_USERNAME=root
+DB_PASSWORD=root
+```
+
+```bahs
+# Entrar al directorio
+cd services/laravel-patient-service
+
+# Instalar dependencias
+composer install
+
+# Configurar APP_KEY si no existe
+php artisan key:generate
+
+# Ejecutar migraciones y cargar Seeders
+# Esto creará a los pacientes de prueba: Juan, María y Julian.
+php artisan migrate --seed
+
+# Iniciar el servicio en el puerto asignado
+php artisan serve --port=8001
+```
+## 3. Notifications Service (Django) - Puerto 8002
+Servicio especializado en la gestión de alertas y recordatorios para pacientes (SMS, Email, App) utilizando Django REST Framework y PostgreSQL.
+
+### Configuración de Base de Datos
+El servicio requiere una instancia de PostgreSQL corriendo localmente con las siguientes credenciales:
+
+```bash
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'notifications_db',
+        'USER': 'postgres',
+        'PASSWORD': 'root',
+        'HOST': '127.0.0.1',
+        'PORT': '5432',
+    }
+}
+```
+### Instalación y Carga de Datos
+```bash
+# Entrar al directorio
+cd services/django-notifications-service
+
+# Instalar dependencias (Django, djangorestframework, psycopg2)
+pip install django djangorestframework psycopg2-binary
+
+# Ejecutar migraciones para crear la estructura en PostgreSQL
+python manage.py migrate
+
+# Cargar datos de prueba iniciales (Fixtures)
+# Esto insertará notificaciones para los pacientes 1, 2 y 3
+python manage.py loaddata fixtures/notifications.json
+
+# Iniciar el servidor de desarrollo
+python manage.py runserver 8002
+```
+
+### Seguridad y Middleware
+Este servicio implementa un Middleware personalizado (InternalTokenMiddleware) que intercepta todas las peticiones para validar el token de comunicación interna.
+
+- Validación: Si el header Authorization no coincide con Token miclave123, el servicio responde con un 403 Forbidden, protegiendo los datos de accesos directos no autorizados.
+
