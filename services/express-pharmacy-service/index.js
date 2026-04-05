@@ -62,6 +62,18 @@ app.delete('/api/pharmacy/:id', authMiddleware, async (req, res) => {
 });
 
 
+// CONEXIÓN A BD Y EXPORTACIÓN DE APP
+mongoose.connect(process.env.MONGO_URI)
+    .then(() => {
+        console.log("Conectado a MongoDB Atlas - Base de Datos: Pharmacy");
+        if (process.env.NODE_ENV !== 'test') {
+            app.listen(PORT, () => console.log(`Servicio Farmacia en puerto ${PORT}`));
+        }
+    })
+    .catch(err => console.error("Error de conexión:", err));
+module.exports = app; 
+
+
 mongoose.connect(process.env.MONGO_URI)
     .then(() => {
         console.log("Conectado a MongoDB Atlas - Base de Datos: Pharmacy");
