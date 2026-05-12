@@ -71,12 +71,5 @@ mongoose.connect(process.env.MONGO_URI)
         }
     })
     .catch(err => console.error("Error de conexión:", err));
-module.exports = app; 
 
-
-mongoose.connect(process.env.MONGO_URI)
-    .then(() => {
-        console.log("Conectado a MongoDB Atlas - Base de Datos: Pharmacy");
-        app.listen(PORT, () => console.log(`Servicio Farmacia en puerto ${PORT}`));
-    })
-    .catch(err => console.error("Error de conexión:", err));
+module.exports = app;
