@@ -15,13 +15,11 @@ class AuthController extends Controller
     // Método para el Login
     public function login(Request $request)
     {
-        // 1. Validación de datos
         $request->validate([
             'email' => 'required|email',
             'password' => 'required'
         ]);
 
-        // 2. Verificar credenciales
         $user = User::where('email', $request->email)->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
@@ -30,7 +28,6 @@ class AuthController extends Controller
             ], 401);
         }
 
-        // 3. Generar el Token de Sanctum
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
@@ -44,7 +41,6 @@ class AuthController extends Controller
     // Método para el Logout
     public function logout(Request $request)
     {
-        // Revocar el token actual del usuario
         $request->user()->currentAccessToken()->delete();
 
         return response()->json([

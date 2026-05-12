@@ -14,7 +14,7 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
-// Ruta "ficticia" requerida por Laravel para generar el correo de recuperación
+// Ruta ficticia que pide Laravel para generar el correo de recuperación
 Route::get('/reset-password/{token}', function (string $token) {
     return response()->json(['token' => $token]);
 })->name('password.reset');
