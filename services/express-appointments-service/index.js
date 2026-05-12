@@ -106,4 +106,8 @@ app.delete('/api/appointments/:id', requireToken, async (req, res) => {
     }
 });
 
-app.listen(3000, () => console.log('Appointments Service protegido corriendo en puerto 3000'));
+if (process.env.NODE_ENV !== 'test') {
+    app.listen(3000, () => console.log('Appointments Service corriendo en puerto 3000'));
+}
+
+module.exports = app;
