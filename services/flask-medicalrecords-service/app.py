@@ -23,7 +23,9 @@ client = MongoClient(MONGO_URI)
 db = client.hospital_db
 records_collection = db.medical_records
 
-TOKEN_SECRETO = "miclave123"
+TOKEN_SECRETO = os.getenv("TOKEN_SECRETO")
+if not TOKEN_SECRETO:
+    raise ValueError("La variable de entorno TOKEN_SECRETO no está definida.")
 
 def require_token(f):
     @wraps(f)
