@@ -41,8 +41,8 @@ services:
 
   api-gateway:
     build:
-      context: ./api-gateway
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: api-gateway/Dockerfile
     container_name: hospital-api-gateway
     restart: unless-stopped
     ports:
@@ -72,8 +72,8 @@ services:
 
   patient-service:
     build:
-      context: ./services/laravel-patient-service
-      dockerfile: Dockerfile
+      context: . 
+      dockerfile: services/laravel-patient-service/Dockerfile
     container_name: hospital-patient-service
     restart: unless-stopped
     ports:
