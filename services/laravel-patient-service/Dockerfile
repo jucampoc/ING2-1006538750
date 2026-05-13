@@ -22,7 +22,7 @@ COPY --from=composer:2.7 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
-COPY . .
+COPY services/laravel-patient-service/ .
 
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 

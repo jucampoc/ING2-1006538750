@@ -1,0 +1,10 @@
+**/node_modules
+**/vendor
+**/.git
+**/.env
+**/tests
+**/__pycache__
+**/*.pyc
+
+**/serviceAccountKey.json
+**/.env.docker
