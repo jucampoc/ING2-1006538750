@@ -31,6 +31,11 @@ RUN chown -R www-data:www-data /var/www/html/storage \
     && chmod -R 775 /var/www/html/storage \
     && chmod -R 775 /var/www/html/bootstrap/cache
 
+COPY ../docker/entrypoints/laravel-entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENV APP_PORT=8001
+
 EXPOSE 8001
 
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8001"]
+ENTRYPOINT ["/entrypoint.sh"]
