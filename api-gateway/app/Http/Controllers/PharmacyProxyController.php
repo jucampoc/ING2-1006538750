@@ -7,8 +7,14 @@ use Illuminate\Support\Facades\Http;
 
 class PharmacyProxyController extends Controller
 {
-    private $url = 'http://127.0.0.1:3001/api/pharmacy';
-    private $token = 'Token miclave123';
+    private $url;
+    private $token;
+
+    public function __construct()
+    {
+        $this->url = env('PHARMACY_SERVICE_URL');
+        $this->token = 'Token ' . env('TOKEN_SECRETO');
+    }
 
     public function index() {
         return Http::withHeaders(['Authorization' => $this->token])->get($this->url);

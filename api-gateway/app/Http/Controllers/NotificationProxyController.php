@@ -7,8 +7,14 @@ use Illuminate\Support\Facades\Http;
 
 class NotificationProxyController extends Controller
 {
-    private $url = 'http://127.0.0.1:8002/api/notifications/';
-    private $secretToken = 'Token miclave123';
+    private $url;
+    private $secretToken;
+
+    public function __construct()
+    {
+        $this->url = env('NOTIFICATIONS_SERVICE_URL');
+        $this->secretToken = 'Token ' . env('TOKEN_SECRETO');
+}
 
     public function index()
     {

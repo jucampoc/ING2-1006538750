@@ -7,8 +7,14 @@ use Illuminate\Support\Facades\Http;
 
 class AppointmentProxyController extends Controller
 {
-    private $url = 'http://localhost:3000/api/appointments';
-    private $secretToken = 'Token miclave123';
+    private $url;
+    private $secretToken;
+
+    public function __construct()
+    {
+        $this->url = env('APPOINTMENTS_SERVICE_URL');
+        $this->secretToken = 'Token ' . env('TOKEN_SECRETO');
+    }
 
     public function index()
     {

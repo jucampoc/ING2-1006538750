@@ -7,9 +7,14 @@ use Illuminate\Support\Facades\Http;
 
 class PatientProxyController extends Controller
 {
-    private $url = 'http://localhost:8001/api/patients';
-    private $secretToken = 'Token miclave123';
+    private $url;
+    private $secretToken;
 
+    public function __construct()
+    {
+        $this->url = env('PATIENTS_SERVICE_URL');
+        $this->secretToken = 'Token ' . env('TOKEN_SECRETO');
+    }
 
     public function index()
     {
