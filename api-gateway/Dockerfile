@@ -22,7 +22,7 @@ COPY --from=composer:2.7 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
-COPY . .
+COPY api-gateway/ .
 
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
@@ -31,9 +31,7 @@ RUN chown -R www-data:www-data /var/www/html/storage \
     && chmod -R 775 /var/www/html/storage \
     && chmod -R 775 /var/www/html/bootstrap/cache
 
-
 COPY docker/entrypoints/laravel-entrypoint.sh /entrypoint.sh
-
 RUN chmod +x /entrypoint.sh
 
 ENV APP_PORT=8000
