@@ -9,7 +9,7 @@ app.use(cors());
 app.use(express.json());
 
 const PORT = process.env.PORT || 3001;
-const TOKEN_INTERNO = process.env.TOKEN_INTERNO;
+const TOKEN_INTERNO = process.env.TOKEN_SECRETO;
 
 const authMiddleware = (req, res, next) => {
     const authHeader = req.headers['authorization'];
