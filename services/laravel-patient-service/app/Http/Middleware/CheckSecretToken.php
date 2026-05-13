@@ -16,9 +16,10 @@ class CheckSecretToken
     public function handle(Request $request, Closure $next)
     {
 
-        $token = $request->header('Authorization');
+        $token    = $request->header('Authorization');
+        $expected = 'Token ' . env('TOKEN_SECRETO');
 
-        if ($token !== 'Token miclave123') {
+        if ($token !== $expected) {
             return response()->json(['error' => 'Acceso no autorizado. Token inválido.'], 403);
         }
 
