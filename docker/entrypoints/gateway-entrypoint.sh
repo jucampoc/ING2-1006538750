@@ -11,7 +11,7 @@ echo "✅ MySQL listo. Ejecutando migraciones..."
 php artisan migrate --force --no-interaction
 
 echo "✅ Ejecutando seeders..."
-php artisan db:seed --class=DatabaseSeeder --force --no-interaction
+php artisan db:seed --class=DatabaseSeeder --force --no-interaction 2>/dev/null || true
 
 echo "🚀 Iniciando servidor Laravel..."
 exec php artisan serve --host=0.0.0.0 --port=$APP_PORT

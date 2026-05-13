@@ -7,7 +7,8 @@ RUN apk add --no-cache \
     zip \
     unzip \
     git \
-    oniguruma-dev
+    oniguruma-dev \
+    mysql-client
 
 RUN docker-php-ext-install \
     pdo \
@@ -31,7 +32,8 @@ RUN chown -R www-data:www-data /var/www/html/storage \
     && chmod -R 775 /var/www/html/storage \
     && chmod -R 775 /var/www/html/bootstrap/cache
 
-COPY docker/entrypoints/laravel-entrypoint.sh /entrypoint.sh
+COPY docker/entrypoints/gateway-entrypoint.sh /entrypoint.sh
+
 RUN chmod +x /entrypoint.sh
 
 ENV APP_PORT=8000
