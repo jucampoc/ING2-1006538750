@@ -15,7 +15,11 @@ const app = express();
 app.use(cors()); 
 app.use(express.json());
 
-const TOKEN_SECRETO = "miclave123"; 
+const TOKEN_SECRETO = process.env.TOKEN_SECRETO;
+if (!TOKEN_SECRETO) {
+    console.error("ERROR: La variable de entorno TOKEN_SECRETO no está definida.");
+    process.exit(1);
+}
 
 function requireToken(req, res, next) {
     const token = req.headers["authorization"]; 
