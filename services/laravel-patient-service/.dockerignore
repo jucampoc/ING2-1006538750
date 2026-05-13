@@ -3,3 +3,8 @@ vendor/
 node_modules/
 storage/logs/*
 .git
+.env
+vendor/
+node_modules/
+storage/logs/*
+.git
